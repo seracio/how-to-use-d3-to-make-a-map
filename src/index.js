@@ -3,10 +3,10 @@
 import * as d3 from 'd3-selection';
 // d3-geo => projections basiques + helper pour dessiner en SVG ou en Canvas à partir d'un geojson
 import { geoPath, geoOrthographic } from 'd3-geo';
-//
+// fichier JSON qui contient les données GeoJSON
 import myGeojson from './custom.geo.json';
 
-// on sélectionne notre conteneur déjà présent dans le DOM initial
+// on sélectionne notre conteneur déjà présent dans le DOM initial d'index.html
 const container = d3.select('#root').style('width', '100%');
 
 // définissons quelques variables :
