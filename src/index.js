@@ -33,7 +33,7 @@ const svg = container
     .attr('viewBox', `0 0 ${width} ${height}`);
 
 // la projection
-// ici on veut une projection de type Wiechel
+// ici on veut une projection de type orthogonales
 // qui permette d'afficher notre geojson dans la taille du SVG
 const projection = geoOrthographic()
     .fitSize([width, height], myGeojson)

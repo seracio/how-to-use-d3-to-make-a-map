@@ -76,4 +76,102 @@ Pour exécuter ce code avec parcel.js, il suffit de taper dans un terminal :
 npm run start
 ```
 
-Puis ouvrir la page de test : [http://localhost:1234](http://localhost:1234)
+`parcel.js` va créer un répertoire `dist` dans lequel il va copier la page `index.html` ainsi que le fichier JavaScript bundlé que je vous invite à inspecter pour constater qu'il contient désormais beaucoup de codes ; au notre, s'ajoute désormais les librairies externes dont il dépend.
+`parcel.js` va également lancer un serveur de test local pour afficher la page : [http://localhost:1234](http://localhost:1234)
+
+## Analyse du code
+
+> 1. Chargement des dépendances :
+
+```javascript
+import * as d3 from 'd3-selection';
+import { geoPath, geoOrthographic } from 'd3-geo';
+import myGeojson from './custom.geo.json';
+```
+
+C'est la première étape, l'import des librairies. d3 est désormais fragmenté [en une multitudes de librairies](https://github.com/d3) plutôt qu'en une seule. Cela permet d'avoir un code plus léger et un temps de chargement qui s'en ressent pour l'utilisateur.
+Nous utilisons ici [le mot-clé `import`](https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Instructions/import) pour charger les dépendances.
+Notons que le fichier JSON est chargé sans problèmes grâce à `parcel.js`, cela n'est normalement pas possible avec l'import standard.
+
+> 2. Création du tag svg à l'aide de d3
+
+```javascript
+const container = d3.select('#root').style('width', '100%');
+
+// définissons quelques variables :
+// la largeur et la hauteur de notre SVG
+// ces variables ne correspondent pas à des pixels mais plutôt à l'univers visible
+// au sein de notre SVG
+const width = 800,
+    height = 600;
+
+// on y ajoute un tag svg
+const svg = container
+    // d3 utilise le chaining pattern :
+    // en gros, lorsque j'utilise un style ou un attr, je pointe toujours sur le même élément
+    // (çàd que la fonction renvoie toujours l'élément sur lequel elle s'applique)
+    // en revanche, quand je fais un append (ajout d'enfant html), la fonction append renvoie l'enfant ajouté
+    .append('svg') // ==> renvoie le nouvel élément svg
+    // ce qui veut dire que j'ajoute une classe au svg et non au conteneur initial
+    .attr('class', 'map')
+    // ce sont des attributs pour le resize automatique du svg :
+    // ==> https://css-tricks.com/scale-svg/
+    // inutile de comprendre ça pour le moment, il faut juste comprendre
+    // que cela nous permet d'avoir un svg qui s'ajuste à son conteneur
+    .attr('perserveAspectRatio', 'xMidYMid meet')
+    .attr('viewBox', `0 0 ${width} ${height}`);
+```
+
+> 3. Définition de la projection utilisée
+
+```javascript
+// la projection
+// ici on veut une projection de type orthogonales
+// qui permette d'afficher notre geojson dans la taille du SVG
+const projection = geoOrthographic()
+    .fitSize([width, height], myGeojson)
+    .center([0, 0]);
+```
+
+> 4. Définition du path generator
+
+```javascript
+// le path generator :
+// notre pathGenerator est une fonction
+// pour la construire, on a juste besoin de la projection
+// Le path generator prendra ensuite en paramètre un objet geojson et renverra
+// un chemin SVG
+const pathGenerator = geoPath().projection(projection);
+```
+
+> 5. Dessin des pays dans le SVG
+
+```javascript
+// dessinons les différents pays
+// notre geojson est une 'FeatureCollection', un objet geojson
+// qui représente une liste (contenue dans l'attribut "features")
+// nous allons injecter cette liste dans d3
+// et construire les pays
+
+// là, on définit le mapping entre nos donnée (nos features)
+// et les éléments HTML à l'intérieur du SVG
+const myCountries = svg.selectAll('.country').data(myGeojson.features);
+
+// une fois le mapping effectué
+// on peut dire :
+myCountries
+    // Pour tous les nouveaux éléments du mapping
+    // (dans notre cas, TOUS les éléments puisque l'on vient juste de créer le mapping et qu'il n'y a
+    // encore aucune balise)
+    .enter()
+    // On ajoute une balise path
+    .append('path')
+    // qui aura une class country
+    .attr('class', 'country')
+    // un chemin généré par notre path generator
+    .attr('d', datum => pathGenerator(datum))
+    // avec une couleur bleue
+    .style('fill', 'blue')
+    // et un contour gris pâle
+    .style('stroke', '#efefef');
+```
